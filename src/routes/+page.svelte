@@ -1,12 +1,14 @@
 <script lang="ts">
+  import { z } from "zod";
   import { createForm } from "$lib/form";
-  import FormRoot from "$lib/FormRoot.svelte";
-  import FormField from "$lib/FormField.svelte";
+  import FormWrapper from "$lib/FormWrapper.svelte";
 
-  const form = createForm({ name: "", email: "", age: 0 });
+  const schema = z.object({
+    name: z.string(),
+    email: z.string(),
+  });
+
+  const form = createForm(schema);
 </script>
 
-<FormRoot {form}>
-  <FormField {form} name="name" />
-  <FormField {form} name="email" />
-</FormRoot>
+<FormWrapper {form} />
