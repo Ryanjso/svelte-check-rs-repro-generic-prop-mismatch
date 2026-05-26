@@ -1,44 +1,37 @@
-# Repro: Generic Component Props Type Mismatch
+# svelte-check-rs bug: generic component props type mismatch
 
 ## Bug
 
-When a parent component creates a complex generic object (like a form store) and passes
-it to a child component, `svelte-check-rs` reports type mismatches that native
-`svelte-check` does not.
+When a component accepts a generic prop typed with a base constraint (e.g. `FormStore<Record<string, unknown>>`) and a parent passes a concrete instantiation (e.g. `FormStore<{ name: string; email: string; age: number }>`), `svelte-check-rs` reports false type errors:
+
+```
+src/routes/+page.svelte:9:11
+Error: Type 'FormStore<{ name: string; email: string; age: number; }>'
+  is not assignable to type 'FormStore<Record<string, unknown>>'. (ts(TS2322))
+```
+
+This error appears 3 times (once per component receiving the `form` prop). Native `svelte-check` handles this correctly.
 
 ## What this abstracts
 
-This is a simplified reproduction of a pattern from `sveltekit-superforms`. In that
-library, calling `superForm()` returns a deeply generic store object whose type parameter
-is the specific form schema (e.g. `SuperForm<{name: string, email: string, age: number}>`).
-Components that accept that store declare their prop type as the base constraint
-(e.g. `SuperForm<Record<string, unknown>>`).
+This reproduces a pattern from `sveltekit-superforms`. `superForm()` returns a deeply generic store typed with the specific form schema. Child components (`Form.Root`, `Form.Field`) accept the base constraint type. In our real codebase this causes ~32 false errors.
 
-In our real codebase this pattern produces approximately 350 errors from `svelte-check-rs`.
+## How it works
 
-## How it works here
-
-- `createForm<T>()` in `src/lib/form.ts` returns a `FormStore<{name: string, email: string, age: number}>`.
-- `FormRoot.svelte` and `FormField.svelte` accept `FormStore<Record<string, unknown>>` as a prop.
+- `createForm<T>()` in `src/lib/form.ts` returns `FormStore<{ name: string; email: string; age: number }>`.
+- `FormRoot.svelte` and `FormField.svelte` accept `FormStore<Record<string, unknown>>`.
 - `+page.svelte` creates the concrete form and passes it to both child components.
 
-The concrete type `{name: string, email: string, age: number}` satisfies the constraint
-`Record<string, unknown>`, so the assignment should be valid. Native `svelte-check`
-handles this covariance correctly. `svelte-check-rs` rejects it.
+The concrete type satisfies `Record<string, unknown>`, so the assignment should be valid.
 
-## Expected behavior
+## Reproduce
 
-No type errors. The concrete `FormStore<{name: string, email: string, age: number}>` is
-assignable to `FormStore<Record<string, unknown>>` because:
+```bash
+pnpm install
+npx svelte-check-rs
+```
 
-1. `{name: string, email: string, age: number}` extends `Record<string, unknown>`
-2. The `Writable<T>` / `Readable<T>` store wrappers are covariant in `T`
-3. `Partial<Record<keyof T, ...>>` is also covariant
+## Environment
 
-## Note
-
-If this simplified version does not trigger the exact error in `svelte-check-rs`, the
-real-world case involves deeper generic nesting from the superforms library, including
-mapped types, conditional types, and more complex store hierarchies. The key pattern is
-the same: a generic factory produces a store typed with a specific schema, and child
-components accept the store typed with the base constraint.
+- svelte-check-rs 0.9.16
+- Svelte 5 / SvelteKit 2
