@@ -1,14 +1,17 @@
 {
   "name": "repro-generic-prop-mismatch",
   "type": "module",
-  "scripts": { "check": "svelte-check-rs" },
+  "scripts": {
+    "check": "svelte-check-rs"
+  },
   "devDependencies": {
-    "svelte": "^5.53.0",
+    "@sveltejs/adapter-auto": "^6.0.0",
     "@sveltejs/kit": "^2.53.0",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
-    "@sveltejs/adapter-auto": "^6.0.0",
-    "svelte-check-rs": "0.9.16",
+    "@types/node": "^25.9.1",
     "@typescript/native-preview": "latest",
+    "svelte": "^5.53.0",
+    "svelte-check-rs": "0.9.16",
     "vite": "^6.0.0"
   }
 }
